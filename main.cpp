@@ -4,48 +4,42 @@
 #include <chrono>
 
 /* CONST */
-#define WAIT_TIME_MS 2000
+#define WAIT_TIME_MS 2
 // Définition des seuils pour la position du volant
 
 
 /* OUT */
-DigitalOut cmd_frein(A2);
-DigitalOut led1(LED1);
-PwmOut buzzer(A1);
+BusOut bargraph(D2,D3,D4,D5,D6,D7,D8,D9);
 
 
 /* IN */
-InterruptIn bp_frein(D11, PullUp);
-InterruptIn bp_buzzer(D1, PullUp);
 
-void rise_bp_frein(){
-    cmd_frein.write(0);
+/* VAR */
+int frontLeds;
+bool sens, flag_bargraph; 
+Ticker t_bargraph;
+
+void gestion_bargraph(){
+    if(sens == 1) {
+            frontLeds = frontLeds*2;
+        } else {
+            frontLeds = frontLeds/2;
+        }
+        if (frontLeds == 0x80) sens = 0;
+        if (frontLeds == 0x01) sens = 1;
+        flag_bargraph =  1;
 }
-
-void fall_bp_frein(){
-    cmd_frein.write(1);
-}
-
-void rise_bp_buzzer(){
-    buzzer.period_ms(50000);
-}
-
-void fall_bp_buzzer(){
-    buzzer.period_ms(1);
-}
-
 int main() {
-    cmd_frein.write(0);
-    buzzer.write(0.5);
-    
-    bp_frein.rise(&rise_bp_frein);
-    bp_frein.fall(&fall_bp_frein);
-
-    bp_buzzer.rise(&rise_bp_buzzer);
-    bp_buzzer.fall(&fall_bp_buzzer);
+    bargraph.write(0);
+    frontLeds = 0x01;
+    sens = 1;
+    t_bargraph.attach_us(&gestion_bargraph, 800000);
 
     while (true) {
-        led1=!led1;
+        if(flag_bargraph == 1) {
+            bargraph.write(frontLeds);
+            flag_bargraph = 0;
+        }
         thread_sleep_for(WAIT_TIME_MS);
     }
 }
